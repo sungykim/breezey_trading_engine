@@ -1,72 +1,74 @@
+import os
 import pandas as pd
-import re
-from utils.dip_utils import classify_candles, detect_dip_patterns, validate_dip
+from utils.dip_utils import classify_candles, detect_dip_patterns, validate_dip, get_pip_multiplier
+from utils.session_utils import get_origin_session
 
-# === CONFIG ===
-INPUT_FILE = "data/GBPUSD_H4.csv"
-SMALL_BODY_THRESHOLD = 0.25
+# === Config ===
+DATA_ROOT = "data"
+RESULTS_ROOT = "results"
 
-def get_thresholds(symbol):
-    if 'JPY' in symbol.upper():
-        return {
-            'pip_multiplier': 100,
-            'doji_body_threshold': 0.01,
-            'min_pip_drop': 1.0
-        }
-    else:
-        return {
-            'pip_multiplier': 10000,
-            'doji_body_threshold': 0.0001,
-            'min_pip_drop': 10.0
-        }
+def process_merged_files():
+    for pair in os.listdir(DATA_ROOT):
+        pair_path = os.path.join(DATA_ROOT, pair)
+        if not os.path.isdir(pair_path) or pair.startswith('.'):
+            continue
 
-# === Load Data ===
-df = pd.read_csv(INPUT_FILE)
+        for timeframe in os.listdir(pair_path):
+            timeframe_path = os.path.join(pair_path, timeframe)
+            if not os.path.isdir(timeframe_path) or timeframe.startswith('.'):
+                continue
 
-# Convert to datetime (assuming TradingView UTC export)
-df['datetime_utc'] = pd.to_datetime(df['time'], unit='s')
+            # File like GBPAUD_D1_merged.csv
+            merged_filename = f"{pair}_{timeframe}_merged.csv"
+            merged_file_path = os.path.join(timeframe_path, merged_filename)
 
-# Optional: Extract symbol from filename
-symbol_match = re.search(r'([A-Z]{6,7})', INPUT_FILE)
-symbol = symbol_match.group(1) if symbol_match else "UNKNOWN"
-thresholds = get_thresholds(symbol)
+            if not os.path.exists(merged_file_path):
+                print(f"❌ No merged file found for {pair} {timeframe}, skipping.")
+                continue
 
-# === Classify candles ===
-candle_types = classify_candles(
-    df,
-    small_body_threshold=SMALL_BODY_THRESHOLD,
-    doji_body_threshold=thresholds['doji_body_threshold']
-)
+            print(f"🔍 Processing {merged_file_path}...")
+            df = pd.read_csv(merged_file_path)
+            df['datetime_utc'] = pd.to_datetime(df['time'], unit='s')
 
-# === Detect dips ===
-raw_dips = detect_dip_patterns(df, candle_types)
+            pip_multiplier = get_pip_multiplier(pair.upper())
 
-# === Validate dips ===
-validated_dips = []
-for dip in raw_dips:
-    result = validate_dip(
-        df,
-        dip,
-        pip_multiplier=thresholds['pip_multiplier'],
-        min_pip_drop=thresholds['min_pip_drop']
-    )
+            candle_types = classify_candles(df)
+            dips = detect_dip_patterns(candle_types)
 
-    if result['passed']:
-        start_time = df.iloc[dip['start_index']]['datetime_utc']
-        end_time = df.iloc[dip['end_index']]['datetime_utc']
-        session = df.iloc[dip['start_index']].get('session', 'Unknown')
+            validated_dips = []
+            for dip in dips:
+                validation = validate_dip(df, dip, pip_multiplier)
+                if not validation['passed']:
+                    continue
 
-        enriched_dip = {
-            **dip,
-            **result,
-            'start_time': start_time,
-            'end_time': end_time,
-            'origin_session': session
-        }
+                start_idx = dip['start_index']
+                end_idx = dip['end_index']
 
-        validated_dips.append(enriched_dip)
+                dip_data = {
+                    'pair': pair,
+                    'timeframe': timeframe,
+                    'dip_id': dip['id'],
+                    'start_time': df.iloc[start_idx]['datetime_utc'],
+                    'end_time': df.iloc[end_idx]['datetime_utc'],
+                    'origin_session': get_origin_session(df.iloc[start_idx]['datetime_utc']),
+                    **validation
+                }
 
-# === Export results ===
-output_df = pd.DataFrame(validated_dips)
-output_df.to_csv("validated_dips.csv", index=False)
-print(f"Saved {len(output_df)} validated dips to 'validated_dips.csv'")
+                validated_dips.append(dip_data)
+
+            if validated_dips:
+                results_df = pd.DataFrame(validated_dips)
+
+                # Create per-pair/timeframe results folder
+                results_folder = os.path.join(RESULTS_ROOT, pair, timeframe)
+                os.makedirs(results_folder, exist_ok=True)
+
+                output_file = os.path.join(results_folder, f"{pair}_{timeframe}_validated_dips.csv")
+                results_df.to_csv(output_file, index=False)
+
+                print(f"✅ Saved {len(results_df)} validated dips to {output_file}")
+            else:
+                print(f"⚠️ No validated dips for {pair} {timeframe}")
+
+if __name__ == "__main__":
+    process_merged_files()
