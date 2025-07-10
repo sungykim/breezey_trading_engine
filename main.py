@@ -18,7 +18,7 @@ def process_merged_files():
             if not os.path.isdir(timeframe_path) or timeframe.startswith('.'):
                 continue
 
-            # File like GBPAUD_D1_merged.csv
+            # Keep the format: PAIR_TIMEFRAME_merged.csv
             merged_filename = f"{pair}_{timeframe}_merged.csv"
             merged_file_path = os.path.join(timeframe_path, merged_filename)
 
@@ -31,7 +31,6 @@ def process_merged_files():
             df['datetime_utc'] = pd.to_datetime(df['time'], unit='s')
 
             pip_multiplier = get_pip_multiplier(pair.upper())
-
             candle_types = classify_candles(df)
             dips = detect_dip_patterns(candle_types)
 
@@ -59,7 +58,6 @@ def process_merged_files():
             if validated_dips:
                 results_df = pd.DataFrame(validated_dips)
 
-                # Create per-pair/timeframe results folder
                 results_folder = os.path.join(RESULTS_ROOT, pair, timeframe)
                 os.makedirs(results_folder, exist_ok=True)
 
