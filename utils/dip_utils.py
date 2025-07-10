@@ -8,18 +8,16 @@ PIP_MULTIPLIERS = {
 def get_pip_multiplier(symbol: str) -> int:
     return PIP_MULTIPLIERS['JPY'] if 'JPY' in symbol else PIP_MULTIPLIERS['DEFAULT']
 
-def classify_candle(row, small_body_threshold=0.25):
-    body = abs(row['close'] - row['open'])
+def classify_candle(row):
     rng = row['high'] - row['low']
     if rng == 0:
         return 'flat'
-    body_ratio = body / rng
     if row['close'] > row['open']:
         return 'bullish'
     elif row['close'] < row['open']:
         return 'bearish'
     else:
-        return 'doji'
+        return 'CHECK'
 
 def classify_candles(df):
     return df.apply(classify_candle, axis=1)
@@ -29,20 +27,27 @@ def detect_dip_patterns(candle_types):
     candles = candle_types.tolist()
     i = 0
     dip_id = 0
-    while i < len(candles) - 3:
-        # Pattern A:
-        # Bullish, at least 2 Bearish, Bullish
-        if (
-            candles[i] == 'bullish' and
-            candles[i+1] == 'bearish' and
-            candles[i+2] == 'bearish' and
-            candles[i+3] == 'bullish'
-        ):
-            dips.append({'id': dip_id, 'start_index': i, 'end_index': i+3})
-            dip_id += 1
-            i += 4
-        else:
-            i += 1
+    n = len(candles)
+
+    while i < n - 3:
+        # Check if starts with bullish
+        if candles[i] == 'bullish':
+            # Now check how many bearish candles follow starting from i+1
+            j = i + 1
+            bearish_count = 0
+
+            # Count consecutive bearish candles starting at i+1
+            while j < n - 1 and candles[j] == 'bearish':
+                bearish_count += 1
+                j += 1
+
+            # Need at least 2 bearish candles, and next candle (j) must be bullish to close dip
+            if bearish_count >= 2 and j < n and candles[j] == 'bullish':
+                dips.append({'id': dip_id, 'start_index': i, 'end_index': j})
+                dip_id += 1
+                i = j + 1  # Skip past this dip
+                continue  # continue the while loop
+        i += 1
     return dips
 
 def validate_dip(df, dip, pip_multiplier, min_pip_drop=10):
@@ -87,4 +92,3 @@ def validate_dip(df, dip, pip_multiplier, min_pip_drop=10):
         'duration': bearish_count,
         'avg_pip_velocity': avg_velocity
     }
-

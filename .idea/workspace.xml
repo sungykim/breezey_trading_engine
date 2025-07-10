@@ -5,13 +5,8 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="1fef2a12-1929-4c0b-9eae-2633730f692f" name="Changes" comment="Change 1: Added some files in">
-      <change afterPath="$PROJECT_DIR$/dashboard_app.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/merge_validate_csv.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/utils/session_utils.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/main.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/utils/dip_utils.py" beforeDir="false" afterPath="$PROJECT_DIR$/utils/dip_utils.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/utils/time_utils.py" beforeDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -33,21 +28,21 @@
     </option>
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
   </component>
-  <component name="GitHubPullRequestSearchHistory"><![CDATA[{
-  "lastFilter": {
-    "state": "OPEN",
-    "assignee": "sungykim"
+  <component name="GitHubPullRequestSearchHistory">{
+  &quot;lastFilter&quot;: {
+    &quot;state&quot;: &quot;OPEN&quot;,
+    &quot;assignee&quot;: &quot;sungykim&quot;
   }
-}]]></component>
-  <component name="GithubPullRequestsUISettings"><![CDATA[{
-  "selectedUrlAndAccountId": {
-    "url": "https://github.com/sungykim/breezey_trading_engine.git",
-    "accountId": "605ffe82-f560-4058-b73c-5ae54ce721d5"
+}</component>
+  <component name="GithubPullRequestsUISettings">{
+  &quot;selectedUrlAndAccountId&quot;: {
+    &quot;url&quot;: &quot;https://github.com/sungykim/breezey_trading_engine.git&quot;,
+    &quot;accountId&quot;: &quot;605ffe82-f560-4058-b73c-5ae54ce721d5&quot;
   }
-}]]></component>
-  <component name="ProjectColorInfo"><![CDATA[{
-  "associatedIndex": 3
-}]]></component>
+}</component>
+  <component name="ProjectColorInfo">{
+  &quot;associatedIndex&quot;: 3
+}</component>
   <component name="ProjectId" id="2zaDouLqf4V4yELpungUnrmT5zm" />
   <component name="ProjectViewState">
     <option name="hideEmptyMiddlePackages" value="true" />
@@ -59,6 +54,7 @@
     "ModuleVcsDetector.initialDetectionPerformed": "true",
     "Python.analyse_dips.executor": "Run",
     "Python.dashboard.executor": "Run",
+    "Python.dashboard_app.executor": "Run",
     "Python.main.executor": "Run",
     "Python.merge_validate_csv.executor": "Run",
     "Python.time_util_fn.executor": "Run",
@@ -83,7 +79,7 @@
       <recent name="$PROJECT_DIR$" />
     </key>
   </component>
-  <component name="RunManager" selected="Python.dashboard_app">
+  <component name="RunManager" selected="Python.main">
     <configuration name="dashboard" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
       <module name="breezey_trading_engine" />
       <option name="ENV_FILES" value="" />
@@ -135,6 +131,9 @@
       <option name="ENV_FILES" value="" />
       <option name="INTERPRETER_OPTIONS" value="" />
       <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
       <option name="SDK_HOME" value="" />
       <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
       <option name="IS_MODULE_SDK" value="true" />
@@ -175,9 +174,9 @@
     </configuration>
     <recent_temporary>
       <list>
+        <item itemvalue="Python.main" />
         <item itemvalue="Python.dashboard_app" />
         <item itemvalue="Python.dashboard" />
-        <item itemvalue="Python.main" />
         <item itemvalue="Python.merge_validate_csv" />
       </list>
     </recent_temporary>
@@ -262,22 +261,12 @@
     <MESSAGE value="Change 1: Added some files in" />
     <option name="LAST_COMMIT_MESSAGE" value="Change 1: Added some files in" />
   </component>
-  <component name="XDebuggerManager">
-    <breakpoint-manager>
-      <breakpoints>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/utils/dip_utils.py</url>
-          <line>3</line>
-          <option name="timeStamp" value="1" />
-        </line-breakpoint>
-      </breakpoints>
-    </breakpoint-manager>
-  </component>
   <component name="com.intellij.coverage.CoverageDataManagerImpl">
     <SUITE FILE_PATH="coverage/breezey_trading_engine$dashboard.coverage" NAME="dashboard Coverage Results" MODIFIED="1752037414737" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
-    <SUITE FILE_PATH="coverage/breezey_trading_engine$main.coverage" NAME="main Coverage Results" MODIFIED="1752034675002" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/breezey_trading_engine$main.coverage" NAME="main Coverage Results" MODIFIED="1752139806681" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
     <SUITE FILE_PATH="coverage/breezey_trading_engine$time_util_fn.coverage" NAME="time_util_fn Coverage Results" MODIFIED="1751962118318" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
     <SUITE FILE_PATH="coverage/breezey_trading_engine$merge_validate_csv.coverage" NAME="merge_validate_csv Coverage Results" MODIFIED="1752032589328" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
     <SUITE FILE_PATH="coverage/breezey_trading_engine$analyse_dips.coverage" NAME="analyse_dips Coverage Results" MODIFIED="1752037856120" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/breezey_trading_engine$dashboard_app.coverage" NAME="dashboard_app Coverage Results" MODIFIED="1752139794728" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
   </component>
 </project>
