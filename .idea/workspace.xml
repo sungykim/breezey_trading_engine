@@ -4,12 +4,9 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="1fef2a12-1929-4c0b-9eae-2633730f692f" name="Changes" comment="Change 3: Fixed an issue with dip logic only counting 2 bearish candles as a valid dip">
+    <list default="true" id="1fef2a12-1929-4c0b-9eae-2633730f692f" name="Changes" comment="Change 4: Pre Dashboard Version">
+      <change afterPath="$PROJECT_DIR$/dashboard.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/dashboard_app.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/main.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/merge_validate_csv.py" beforeDir="false" afterPath="$PROJECT_DIR$/merge_validate_csv.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/utils/plot_utils.py" beforeDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -185,7 +182,15 @@
       <option name="project" value="LOCAL" />
       <updated>1752140230199</updated>
     </task>
-    <option name="localTasksCounter" value="5" />
+    <task id="LOCAL-00005" summary="Change 4: Pre Dashboard Version">
+      <option name="closed" value="true" />
+      <created>1752146833906</created>
+      <option name="number" value="00005" />
+      <option name="presentableId" value="LOCAL-00005" />
+      <option name="project" value="LOCAL" />
+      <updated>1752146833906</updated>
+    </task>
+    <option name="localTasksCounter" value="6" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -223,10 +228,11 @@
     <MESSAGE value="Init" />
     <MESSAGE value="Change 1: Added some files in" />
     <MESSAGE value="Change 3: Fixed an issue with dip logic only counting 2 bearish candles as a valid dip" />
-    <option name="LAST_COMMIT_MESSAGE" value="Change 3: Fixed an issue with dip logic only counting 2 bearish candles as a valid dip" />
+    <MESSAGE value="Change 4: Pre Dashboard Version" />
+    <option name="LAST_COMMIT_MESSAGE" value="Change 4: Pre Dashboard Version" />
   </component>
   <component name="com.intellij.coverage.CoverageDataManagerImpl">
-    <SUITE FILE_PATH="coverage/breezey_trading_engine$dashboard.coverage" NAME="dashboard Coverage Results" MODIFIED="1752146455849" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/breezey_trading_engine$dashboard.coverage" NAME="dashboard Coverage Results" MODIFIED="1752148381601" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
     <SUITE FILE_PATH="coverage/breezey_trading_engine$main.coverage" NAME="main Coverage Results" MODIFIED="1752144679652" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
     <SUITE FILE_PATH="coverage/breezey_trading_engine$time_util_fn.coverage" NAME="time_util_fn Coverage Results" MODIFIED="1751962118318" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
     <SUITE FILE_PATH="coverage/breezey_trading_engine$analyse_dips.coverage" NAME="analyse_dips Coverage Results" MODIFIED="1752037856120" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
