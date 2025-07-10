@@ -56,7 +56,7 @@ def dip_distribution_table(df):
     return grouped
 
 def main():
-    st.title("Breezey Trading Engine Dip Dashboard")
+    st.title("Dip Analysis Dashboard")
 
     timeframe = st.selectbox("Select Timeframe", TIMEFRAMES)
     df = load_data(timeframe)
