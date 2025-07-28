@@ -148,8 +148,7 @@ class TrueRangeHeatmapDashboard:
                           '<b>True Range:</b> %{z:.4f}<br>' +
                           '<extra></extra>',
             colorbar=dict(
-                title="True Range Value",
-                titleside="right"
+                title="True Range Value"
             )
         ))
 
@@ -238,7 +237,7 @@ def main():
         )
 
         # Timeframe selection
-        timeframes = ["M30", "H4", "D1"]  # From your script
+        timeframes = ["M30", "H1", "H4", "D1"]  # From your script
         selected_timeframe = st.sidebar.selectbox(
             "Select Timeframe",
             options=timeframes
