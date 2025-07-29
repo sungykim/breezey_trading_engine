@@ -76,7 +76,7 @@ def merge_and_validate(pair: str, timeframe: str):
 
 
 if __name__ == "__main__":
-    pairs = ["GBPJPY"]
+    pairs = ["AUDCAD", "AUDJPY", "AUDUSD", "CADJPY", "CHFJPY", "EURAUD", "EURCAD", "EURJPY", "EURNZD", "EURUSD", "GBPAUD", "GBPCAD", "GBPJPY", "GBPNZD", "GBPUSD", "NZDCAD", "NZDJPY", "NZDUSD", "USDCAD", "USDJPY", "XAUUSD"]
     timeframes = ["H1"]
 
     for pair in pairs:
