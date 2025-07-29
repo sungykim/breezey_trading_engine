@@ -224,7 +224,7 @@ class TrueRangeHeatmapDashboard:
         x_labels = []
 
         if self.current_timeframe == 'M30':
-            # For M30, show all 48 periods
+            # For M30, show every 2 hours (every 4th period)
             for period in heatmap_data.columns:
                 hour = (period // 2 + 21) % 24
                 minute = (period % 2) * 30
@@ -238,8 +238,11 @@ class TrueRangeHeatmapDashboard:
                 utc_dt = ref_dt.replace(hour=hour, minute=minute, tzinfo=pytz.UTC)
                 local_dt = utc_dt.astimezone(tz)
 
-                # Show all labels
-                x_labels.append(f"{local_dt.hour:02d}:{local_dt.minute:02d}")
+                # Show label only for every 2 hours
+                if period % 4 == 0:
+                    x_labels.append(f"{local_dt.hour:02d}:{local_dt.minute:02d}")
+                else:
+                    x_labels.append('')
 
         elif self.current_timeframe == 'H4':
             # For H4, show all 6 periods
@@ -349,7 +352,7 @@ class TrueRangeHeatmapDashboard:
 
         # Adjust layout based on timeframe
         if self.current_timeframe == 'M30':
-            tick_angle = 90
+            tick_angle = 45
         else:
             tick_angle = 0
 
