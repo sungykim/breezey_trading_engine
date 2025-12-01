@@ -184,6 +184,180 @@ class TrueRangeHeatmapDashboard:
 
         return heatmap_data
 
+    def prepare_volatility_analysis_data(self, start_date: Optional[str] = None, end_date: Optional[str] = None):
+        """Prepare data for volatility analysis with pip bins"""
+        if self.processed_data is None:
+            return None
+
+        df = self.processed_data.copy()
+
+        # Convert to UTC for consistent analysis
+        df['datetime_utc'] = df['datetime'].dt.tz_convert('UTC')
+        df['hour_utc'] = df['datetime_utc'].dt.hour
+
+        # Filter by date range if provided
+        if start_date:
+            df = df[df['date'] >= pd.to_datetime(start_date).date()]
+        if end_date:
+            df = df[df['date'] <= pd.to_datetime(end_date).date()]
+
+        # Convert true range to pips
+        pip_multiplier = self.get_pip_multiplier(self.current_pair) if self.current_pair else self.get_pip_multiplier(
+            'DEFAULT')
+        df['true_range_pips'] = df['true_range'] * pip_multiplier
+
+        return df
+
+    def analyze_hourly_volatility(self, df):
+        """Analyze volatility for each hour (0-23 UTC) and create 10-pip bins"""
+        results = {}
+
+        for hour in range(24):
+            # Filter data for the specific hour
+            hour_data = df[df['hour_utc'] == hour]['true_range_pips'].dropna()
+
+            if len(hour_data) == 0:
+                continue
+
+            # Create 10-pip bins
+            max_pips = hour_data.max()
+            num_bins = int(np.ceil(max_pips / 10))
+
+            bins = []
+            for i in range(num_bins):
+                bin_min = i * 10
+                bin_max = (i + 1) * 10 - 1
+                bin_data = hour_data[(hour_data >= bin_min) & (hour_data <= bin_max)]
+
+                bins.append({
+                    'bin_range': f"{bin_min}-{bin_max}",
+                    'bin_min': bin_min,
+                    'bin_max': bin_max,
+                    'count': len(bin_data),
+                    'probability': (len(bin_data) / len(hour_data)) * 100
+                })
+
+            # Filter out empty bins
+            bins = [b for b in bins if b['count'] > 0]
+
+            hour_name = f"{hour:02d}:00 UTC"
+            results[hour_name] = {
+                'hour': hour,
+                'bins': bins,
+                'total_samples': len(hour_data),
+                'mean': hour_data.mean(),
+                'std': hour_data.std(),
+                'min': hour_data.min(),
+                'max': hour_data.max(),
+                'percentiles': {
+                    '25': hour_data.quantile(0.25),
+                    '50': hour_data.quantile(0.50),
+                    '75': hour_data.quantile(0.75),
+                    '95': hour_data.quantile(0.95)
+                }
+            }
+
+        return results
+
+    def create_hourly_volatility_overview_chart(self, analysis_results):
+        """Create overview chart showing key metrics for each hour"""
+        hours = []
+        means = []
+        medians = []
+        p95s = []
+        samples = []
+
+        for hour_name, data in sorted(analysis_results.items(), key=lambda x: x[1]['hour']):
+            hours.append(hour_name)
+            means.append(data['mean'])
+            medians.append(data['percentiles']['50'])
+            p95s.append(data['percentiles']['95'])
+            samples.append(data['total_samples'])
+
+        fig = go.Figure()
+
+        # Add mean line
+        fig.add_trace(go.Scatter(
+            x=hours,
+            y=means,
+            mode='lines+markers',
+            name='Mean',
+            line=dict(color='blue', width=2),
+            marker=dict(size=6)
+        ))
+
+        # Add median line
+        fig.add_trace(go.Scatter(
+            x=hours,
+            y=medians,
+            mode='lines+markers',
+            name='Median (50th percentile)',
+            line=dict(color='green', width=2),
+            marker=dict(size=6)
+        ))
+
+        # Add 95th percentile line
+        fig.add_trace(go.Scatter(
+            x=hours,
+            y=p95s,
+            mode='lines+markers',
+            name='95th percentile',
+            line=dict(color='red', width=2),
+            marker=dict(size=6)
+        ))
+
+        fig.update_layout(
+            title="Hourly Volatility Overview (UTC)",
+            xaxis_title="Hour (UTC)",
+            yaxis_title="True Range (Pips)",
+            height=500,
+            hovermode='x unified',
+            xaxis=dict(tickangle=45)
+        )
+
+        return fig
+
+    def create_volatility_analysis_charts(self, analysis_results):
+        """Create charts for volatility analysis"""
+        charts = {}
+
+        for hour_name, data in analysis_results.items():
+            if not data['bins']:
+                continue
+
+            # Create histogram
+            bin_labels = [bin_data['bin_range'] for bin_data in data['bins']]
+            probabilities = [bin_data['probability'] for bin_data in data['bins']]
+
+            fig = go.Figure()
+
+            # Add bar chart
+            fig.add_trace(go.Bar(
+                x=bin_labels,
+                y=probabilities,
+                name='Probability (%)',
+                marker=dict(
+                    color=probabilities,
+                    colorscale='Viridis',
+                    showscale=True,
+                    colorbar=dict(title="Probability (%)")
+                ),
+                text=[f"{p:.1f}%" for p in probabilities],
+                textposition='auto'
+            ))
+
+            fig.update_layout(
+                title=f"Volatility Distribution - {hour_name}",
+                xaxis_title="Pip Range",
+                yaxis_title="Probability (%)",
+                showlegend=False,
+                height=400
+            )
+
+            charts[hour_name] = fig
+
+        return charts
+
     def create_heatmap(self, heatmap_data, timezone: str = 'UTC', title: str = "True Range Volatility Heatmap",
                        pair: str = None):
         """Create the heatmap visualization with pip values displayed in cells"""
@@ -400,7 +574,7 @@ def main():
     st.set_page_config(page_title="True Range Volatility Heatmap Dashboard", layout="wide")
 
     st.title("🔥 True Range Volatility Heatmap Dashboard")
-    st.markdown("Load your merged trading data to create volatility heatmaps")
+    st.markdown("Load your merged trading data to create volatility heatmaps and analyze hourly pip distributions")
 
     # Initialize session state for data persistence
     if 'dashboard' not in st.session_state:
@@ -413,6 +587,14 @@ def main():
         st.session_state.selected_timeframe = None
 
     dashboard = st.session_state.dashboard
+
+    # Analysis Mode Selection
+    st.sidebar.header("Analysis Mode")
+    analysis_mode = st.sidebar.radio(
+        "Select Analysis Type",
+        ["Heatmap Visualization", "Hourly Volatility Analysis"],
+        help="Choose between heatmap view or hourly statistical pip distribution analysis"
+    )
 
     # Sidebar for controls
     st.sidebar.header("Configuration")
@@ -448,7 +630,9 @@ def main():
         )
 
         # Pair selection
-        pairs = ["AUDCAD", "AUDJPY", "AUDUSD", "CADJPY", "CHFJPY", "EURAUD", "EURCAD", "EURJPY", "EURNZD", "EURUSD", "GBPAUD", "GBPCAD", "GBPJPY", "GBPNZD", "GBPUSD", "NZDCAD", "NZDJPY", "NZDUSD", "USDCAD", "USDJPY", "XAUUSD"]  # Added Gold
+        pairs = ["AUDCAD", "AUDJPY", "AUDUSD", "CADJPY", "CHFJPY", "EURAUD", "EURCAD", "EURJPY", "EURNZD", "EURUSD",
+                 "GBPAUD", "GBPCAD", "GBPJPY", "GBPNZD", "GBPUSD", "NZDCAD", "NZDJPY", "NZDUSD", "USDCAD", "USDJPY",
+                 "XAUUSD", "USDCHF"]  # Added Gold
         selected_pair = st.sidebar.selectbox(
             "Select Currency Pair",
             options=pairs
@@ -517,78 +701,343 @@ def main():
             min_date = tr_data['date'].min()
             max_date = tr_data['date'].max()
 
-            # Get available Monday-Friday pairs
-            week_pairs = dashboard.get_monday_friday_pairs(min_date, max_date)
+            if analysis_mode == "Heatmap Visualization":
+                # Get available Monday-Friday pairs
+                week_pairs = dashboard.get_monday_friday_pairs(min_date, max_date)
 
-            if week_pairs:
-                st.sidebar.subheader("Week Selection")
-                st.sidebar.info("Select complete Monday-Friday weeks for proper visualization")
+                if week_pairs:
+                    st.sidebar.subheader("Week Selection")
+                    st.sidebar.info("Select complete Monday-Friday weeks for proper visualization")
 
-                # Create week options
-                week_options = []
-                for monday, friday in week_pairs:
-                    week_str = f"{monday.strftime('%d/%m/%Y')} - {friday.strftime('%d/%m/%Y')}"
-                    week_options.append(week_str)
+                    # Create week options
+                    week_options = []
+                    for monday, friday in week_pairs:
+                        week_str = f"{monday.strftime('%d/%m/%Y')} - {friday.strftime('%d/%m/%Y')}"
+                        week_options.append(week_str)
 
-                # Default to last 4 weeks if available
-                default_weeks = min(4, len(week_options))
-                selected_weeks = st.sidebar.multiselect(
-                    "Select Weeks",
-                    options=week_options,
-                    default=week_options[-default_weeks:] if week_options else []
+                    # Default to last 4 weeks if available
+                    default_weeks = min(4, len(week_options))
+                    selected_weeks = st.sidebar.multiselect(
+                        "Select Weeks",
+                        options=week_options,
+                        default=week_options[-default_weeks:] if week_options else []
+                    )
+
+                    if selected_weeks:
+                        # Parse selected weeks to get date range
+                        selected_indices = [week_options.index(week) for week in selected_weeks]
+                        selected_pairs = [week_pairs[i] for i in selected_indices]
+
+                        # Prepare heatmap data for each selected week
+                        all_heatmap_data = []
+
+                        # Sort selected pairs by date (most recent first) before processing
+                        selected_pairs_sorted = sorted(selected_pairs, key=lambda x: x[0], reverse=True)
+
+                        for monday, friday in selected_pairs_sorted:
+                            week_data = dashboard.prepare_heatmap_data(
+                                monday.strftime('%Y-%m-%d'),
+                                friday.strftime('%Y-%m-%d')
+                            )
+                            if week_data is not None and not week_data.empty:
+                                all_heatmap_data.append(week_data)
+
+                        if all_heatmap_data:
+                            # Combine all selected weeks
+                            heatmap_data = pd.concat(all_heatmap_data)
+
+                            # Remove any duplicate dates and sort by date descending (most recent first)
+                            heatmap_data = heatmap_data[~heatmap_data.index.duplicated(keep='first')]
+                            heatmap_data = heatmap_data.sort_index(ascending=False)
+
+                            # Create and display heatmap
+                            chart_title = "True Range Volatility Heatmap"
+                            if st.session_state.selected_pair:
+                                chart_title = f"True Range Volatility Heatmap - {st.session_state.selected_pair} {st.session_state.selected_timeframe if data_method == 'Load from Data Folder' else ''}"
+
+                            fig = dashboard.create_heatmap(
+                                heatmap_data,
+                                selected_timezone,
+                                chart_title,
+                                st.session_state.selected_pair
+                            )
+
+                            st.plotly_chart(fig, use_container_width=True)
+
+                            # Show data preview
+                            with st.expander("📋 Data Preview"):
+                                st.dataframe(heatmap_data.head(10))
+
+                        else:
+                            st.warning("No data available for the selected weeks.")
+                    else:
+                        st.warning("Please select at least one week to visualize.")
+                else:
+                    st.warning("No complete Monday-Friday weeks found in the data.")
+
+            else:  # Hourly Volatility Analysis
+                st.sidebar.subheader("Analysis Parameters")
+
+                # Date range selection for analysis
+                start_date = st.sidebar.date_input(
+                    "Start Date",
+                    value=min_date,
+                    min_value=min_date,
+                    max_value=max_date
                 )
 
-                if selected_weeks:
-                    # Parse selected weeks to get date range
-                    selected_indices = [week_options.index(week) for week in selected_weeks]
-                    selected_pairs = [week_pairs[i] for i in selected_indices]
+                end_date = st.sidebar.date_input(
+                    "End Date",
+                    value=max_date,
+                    min_value=min_date,
+                    max_value=max_date
+                )
 
-                    # Prepare heatmap data for each selected week
-                    all_heatmap_data = []
+                # Analysis options
+                st.sidebar.subheader("Analysis Options")
 
-                    # Sort selected pairs by date (most recent first) before processing
-                    selected_pairs_sorted = sorted(selected_pairs, key=lambda x: x[0], reverse=True)
+                show_overview = st.sidebar.checkbox("Show Hourly Overview Chart", value=True)
+                hours_to_analyze = st.sidebar.multiselect(
+                    "Select specific hours for detailed analysis (optional)",
+                    options=[f"{h:02d}:00 UTC" for h in range(24)],
+                    default=[],
+                    help="Leave empty to analyze all hours, or select specific hours for detailed charts"
+                )
 
-                    for monday, friday in selected_pairs_sorted:
-                        week_data = dashboard.prepare_heatmap_data(
-                            monday.strftime('%Y-%m-%d'),
-                            friday.strftime('%Y-%m-%d')
-                        )
-                        if week_data is not None and not week_data.empty:
-                            all_heatmap_data.append(week_data)
+                if st.sidebar.button("Run Hourly Analysis"):
+                    # Prepare data for volatility analysis
+                    analysis_data = dashboard.prepare_volatility_analysis_data(
+                        start_date.strftime('%Y-%m-%d'),
+                        end_date.strftime('%Y-%m-%d')
+                    )
 
-                    if all_heatmap_data:
-                        # Combine all selected weeks
-                        heatmap_data = pd.concat(all_heatmap_data)
+                    if analysis_data is not None and not analysis_data.empty:
+                        # Analyze volatility for all hours
+                        analysis_results = dashboard.analyze_hourly_volatility(analysis_data)
 
-                        # Remove any duplicate dates and sort by date descending (most recent first)
-                        heatmap_data = heatmap_data[~heatmap_data.index.duplicated(keep='first')]
-                        heatmap_data = heatmap_data.sort_index(ascending=False)
+                        if analysis_results:
+                            st.header("⏰ Hourly Volatility Analysis")
+                            st.markdown(f"**Analysis Period:** {start_date} to {end_date}")
+                            st.markdown(f"**Currency Pair:** {st.session_state.selected_pair}")
 
-                        # Create and display heatmap
-                        chart_title = "True Range Volatility Heatmap"
-                        if st.session_state.selected_pair:
-                            chart_title = f"True Range Volatility Heatmap - {st.session_state.selected_pair} {st.session_state.selected_timeframe if data_method == 'Load from Data Folder' else ''}"
+                            # Show overview chart if requested
+                            if show_overview:
+                                st.subheader("📈 Hourly Volatility Overview")
+                                overview_chart = dashboard.create_hourly_volatility_overview_chart(analysis_results)
+                                st.plotly_chart(overview_chart, use_container_width=True)
 
-                        fig = dashboard.create_heatmap(
-                            heatmap_data,
-                            selected_timezone,
-                            chart_title,
-                            st.session_state.selected_pair
-                        )
+                                # Add insights about peak hours
+                                mean_by_hour = {data['hour']: data['mean'] for data in analysis_results.values()}
+                                peak_hour = max(mean_by_hour, key=mean_by_hour.get)
+                                quiet_hour = min(mean_by_hour, key=mean_by_hour.get)
 
-                        st.plotly_chart(fig, use_container_width=True)
+                                col1, col2, col3 = st.columns(3)
+                                with col1:
+                                    st.metric("Most Volatile Hour", f"{peak_hour:02d}:00 UTC",
+                                              f"{mean_by_hour[peak_hour]:.1f} pips")
+                                with col2:
+                                    st.metric("Quietest Hour", f"{quiet_hour:02d}:00 UTC",
+                                              f"{mean_by_hour[quiet_hour]:.1f} pips")
+                                with col3:
+                                    volatility_range = mean_by_hour[peak_hour] - mean_by_hour[quiet_hour]
+                                    st.metric("Volatility Range", f"{volatility_range:.1f} pips", "Peak - Quiet")
 
-                        # Show data preview
-                        with st.expander("📋 Data Preview"):
-                            st.dataframe(heatmap_data.head(10))
+                            # Summary table for all hours
+                            st.subheader("📊 Hourly Statistics Summary")
 
+                            summary_data = []
+                            for hour_name, result in sorted(analysis_results.items(), key=lambda x: x[1]['hour']):
+                                max_prob_bin = max(result['bins'], key=lambda x: x['probability']) if result[
+                                    'bins'] else None
+                                low_vol_prob = sum(b['probability'] for b in result['bins'] if b['bin_max'] < 20)
+                                high_vol_prob = sum(b['probability'] for b in result['bins'] if b['bin_min'] >= 50)
+
+                                summary_data.append({
+                                    'Hour (UTC)': hour_name,
+                                    'Samples': result['total_samples'],
+                                    'Mean (pips)': round(result['mean'], 2),
+                                    'Median (pips)': round(result['percentiles']['50'], 2),
+                                    'Max (pips)': round(result['max'], 2),
+                                    'Most Common Range': max_prob_bin['bin_range'] if max_prob_bin else 'N/A',
+                                    'Low Vol % (<20 pips)': round(low_vol_prob, 1),
+                                    'High Vol % (≥50 pips)': round(high_vol_prob, 1),
+                                    'Risk Level': 'Low' if result['mean'] < 20 else 'Medium' if result[
+                                                                                                    'mean'] < 40 else 'High'
+                                })
+
+                            summary_df = pd.DataFrame(summary_data)
+                            st.dataframe(summary_df, use_container_width=True)
+
+                            # Detailed analysis for specific hours
+                            if hours_to_analyze:
+                                st.subheader("🔍 Detailed Hour Analysis")
+
+                                # Filter results to selected hours
+                                filtered_results = {hour: data for hour, data in analysis_results.items()
+                                                    if hour in hours_to_analyze}
+
+                                # Create tabs for selected hours
+                                if filtered_results:
+                                    tabs = st.tabs(list(filtered_results.keys()))
+
+                                    for i, (hour_name, result) in enumerate(filtered_results.items()):
+                                        with tabs[i]:
+                                            col1, col2 = st.columns([2, 1])
+
+                                            with col1:
+                                                # Create histogram chart
+                                                charts = dashboard.create_volatility_analysis_charts(
+                                                    {hour_name: result})
+                                                if hour_name in charts:
+                                                    st.plotly_chart(charts[hour_name], use_container_width=True)
+
+                                            with col2:
+                                                # Display statistics
+                                                st.subheader("Statistics")
+                                                st.metric("Total Samples", result['total_samples'])
+                                                st.metric("Mean (pips)", f"{result['mean']:.2f}")
+                                                st.metric("Std Dev (pips)", f"{result['std']:.2f}")
+                                                st.metric("Min (pips)", f"{result['min']:.2f}")
+                                                st.metric("Max (pips)", f"{result['max']:.2f}")
+
+                                                st.subheader("Percentiles")
+                                                st.metric("25th", f"{result['percentiles']['25']:.2f}")
+                                                st.metric("50th (Median)", f"{result['percentiles']['50']:.2f}")
+                                                st.metric("75th", f"{result['percentiles']['75']:.2f}")
+                                                st.metric("95th", f"{result['percentiles']['95']:.2f}")
+
+                                            # Probability table
+                                            st.subheader("10-Pip Bin Probability Distribution")
+
+                                            # Create DataFrame for display
+                                            bin_df = pd.DataFrame(result['bins'])
+                                            bin_df['cumulative'] = bin_df['probability'].cumsum()
+
+                                            # Format for display
+                                            display_df = pd.DataFrame({
+                                                'Pip Range': bin_df['bin_range'],
+                                                'Frequency': bin_df['count'],
+                                                'Probability (%)': bin_df['probability'].round(2),
+                                                'Cumulative (%)': bin_df['cumulative'].round(2)
+                                            })
+
+                                            st.dataframe(display_df, use_container_width=True)
+
+                                            # Key insights
+                                            st.subheader("Key Insights")
+
+                                            # Find most probable bin
+                                            max_prob_bin = max(result['bins'], key=lambda x: x['probability'])
+
+                                            # Calculate low and high volatility probabilities
+                                            low_vol_prob = sum(
+                                                b['probability'] for b in result['bins'] if b['bin_max'] < 20)
+                                            high_vol_prob = sum(
+                                                b['probability'] for b in result['bins'] if b['bin_min'] >= 50)
+
+                                            insights = [
+                                                f"🎯 **Most Common Range:** {max_prob_bin['bin_range']} pips ({max_prob_bin['probability']:.1f}% probability)",
+                                                f"📉 **Low Volatility (<20 pips):** {low_vol_prob:.1f}% of the time",
+                                                f"📈 **High Volatility (≥50 pips):** {high_vol_prob:.1f}% of the time",
+                                                f"⚖️ **Risk Assessment:** {'Low' if result['mean'] < 20 else 'Medium' if result['mean'] < 40 else 'High'} average volatility hour"
+                                            ]
+
+                                            for insight in insights:
+                                                st.markdown(insight)
+
+                            # # Trading session analysis
+                            # st.subheader("🌍 Trading Session Analysis")
+                            #
+                            # # Define major trading sessions (UTC hours)
+                            # sessions = {
+                            #     "Asian Session": list(range(21, 24)) + list(range(0, 7)),  # 21:00 - 07:00 UTC
+                            #     "London Session": list(range(7, 12)),  # 07:00 - 12:00 UTC
+                            #     "New York Session": list(range(12, 21)),  # 12:00 - 21:00 UTC
+                            #     "Asian Time Pocket": list(range(23, 24)) + list(range(0, 1)), # 00:00 to 01:00 UTC (01:00 to 02:00 UK)
+                            #     "London Time Pocket": list(range(6, 8)), # 06:00 to 08:00 UTC (07:00 to 09:00 UK)
+                            #     "New York Time Pocket": list(range(12, 14))  # 12:00 to 14:00 UTC (13:00 to 15:00 UK)
+                            # }
+                            #
+                            # session_stats = []
+                            # for session_name, hours in sessions.items():
+                            #     session_hours = [f"{h:02d}:00 UTC" for h in hours if
+                            #                      f"{h:02d}:00 UTC" in analysis_results]
+                            #     if session_hours:
+                            #         session_means = [analysis_results[hour]['mean'] for hour in session_hours]
+                            #         session_samples = sum(
+                            #             analysis_results[hour]['total_samples'] for hour in session_hours)
+                            #
+                            #         session_stats.append({
+                            #             'Trading Session': session_name,
+                            #             'Hours (UTC)': f"{min(hours):02d}:00 - {max(hours):02d}:59",
+                            #             'Avg Volatility (pips)': round(np.mean(session_means), 2),
+                            #             'Min Volatility (pips)': round(min(session_means), 2),
+                            #             'Max Volatility (pips)': round(max(session_means), 2),
+                            #             'Total Samples': session_samples,
+                            #             'Risk Level': 'Low' if np.mean(session_means) < 20 else 'Medium' if np.mean(
+                            #                 session_means) < 40 else 'High'
+                            #         })
+                            #
+                            # if session_stats:
+                            #     session_df = pd.DataFrame(session_stats)
+                            #     st.dataframe(session_df, use_container_width=True)
+
+                            # Export options
+                            st.header("💾 Export Results")
+
+                            # Prepare export data
+                            export_data = {}
+                            for hour_name, result in analysis_results.items():
+                                export_data[f"{hour_name.replace(':', '')}_bins"] = pd.DataFrame(result['bins'])
+                                export_data[f"{hour_name.replace(':', '')}_stats"] = pd.DataFrame([{
+                                    'metric': k,
+                                    'value': v if not isinstance(v, dict) else str(v)
+                                } for k, v in result.items() if k != 'bins'])
+
+                            # Create download buttons
+                            col1, col2 = st.columns(2)
+
+                            with col1:
+                                if st.button("📊 Download Detailed Results (Excel)"):
+                                    output = io.BytesIO()
+                                    with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
+                                        # Add summary sheet
+                                        summary_df.to_excel(writer, sheet_name='Hourly_Summary', index=False)
+
+                                        # Add session analysis if available
+                                        if session_stats:
+                                            session_df.to_excel(writer, sheet_name='Session_Analysis', index=False)
+
+                                        # Add detailed data for each hour (limit to avoid Excel sheet limit)
+                                        for i, (sheet_name, df) in enumerate(
+                                                list(export_data.items())[:50]):  # Limit sheets
+                                            try:
+                                                df.to_excel(writer, sheet_name=sheet_name[:31],
+                                                            index=False)  # Excel sheet name limit
+                                            except Exception:
+                                                continue  # Skip if there's an issue with the sheet
+
+                                    st.download_button(
+                                        label="Download Excel File",
+                                        data=output.getvalue(),
+                                        file_name=f"hourly_volatility_analysis_{st.session_state.selected_pair}_{start_date}_{end_date}.xlsx",
+                                        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                                    )
+
+                            with col2:
+                                if st.button("📋 Download Summary (CSV)"):
+                                    csv = summary_df.to_csv(index=False)
+                                    st.download_button(
+                                        label="Download CSV File",
+                                        data=csv,
+                                        file_name=f"hourly_volatility_summary_{st.session_state.selected_pair}_{start_date}_{end_date}.csv",
+                                        mime="text/csv"
+                                    )
+
+                        else:
+                            st.warning("No analysis results generated. Please check your date range.")
                     else:
-                        st.warning("No data available for the selected weeks.")
-                else:
-                    st.warning("Please select at least one week to visualize.")
-            else:
-                st.warning("No complete Monday-Friday weeks found in the data.")
+                        st.warning("No data available for the selected date range.")
 
     else:
         # Show sample data format and instructions
@@ -624,6 +1073,44 @@ data/
             'volume': [1000, 1200, 800]  # Optional
         })
         st.dataframe(sample_data)
+
+        # Feature overview based on selected analysis mode
+        if analysis_mode == "Hourly Volatility Analysis":
+            st.subheader("⏰ Hourly Volatility Analysis Features")
+            st.markdown("""
+            This analysis mode provides:
+            - **Hour-by-hour analysis** (0:00-23:59 UTC) of volatility patterns
+            - **10-pip bin probability distributions** for each hour
+            - **Statistical analysis** (mean, std dev, percentiles) for each hour
+            - **Visual overview chart** showing volatility trends throughout the day
+            - **Trading session analysis** (Asian, European, US sessions)
+            - **Comparative analysis** across all 24 hours
+            - **Export capabilities** for further analysis
+            - **Flexible hour selection** for detailed analysis
+
+            Perfect for:
+            - Identifying optimal trading hours for your strategy
+            - Risk assessment for different times of day
+            - Understanding daily volatility cycles
+            - Position sizing based on time-specific volatility
+            - Developing time-based trading rules
+            """)
+        else:
+            st.subheader("🔥 Heatmap Visualization Features")
+            st.markdown("""
+            This visualization mode provides:
+            - **Weekly heatmaps** showing volatility patterns
+            - **Color-coded visualization** with pip values displayed
+            - **Multiple week comparison** capabilities
+            - **Timezone conversion** for local time analysis
+            - **Trading day alignment** (Sunday 21:00 UTC start)
+
+            Perfect for:
+            - Visual pattern recognition
+            - Weekly volatility comparison
+            - Quick volatility assessment
+            - Time zone specific analysis
+            """)
 
 
 if __name__ == "__main__":
