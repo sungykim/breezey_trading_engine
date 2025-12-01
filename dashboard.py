@@ -4,8 +4,8 @@ import os
 import plotly.express as px
 
 RESULTS_ROOT = "results"
-PAIRS = ["GBPUSD", "GBPJPY", "GBPAUD"]
-TIMEFRAMES = ["D1", "H4", "M30"]
+PAIRS = ["GBPAUD", "GBPJPY", "XAUUSD"]
+TIMEFRAMES = ["M1", "M5"]
 
 SESSIONS = ['Asian', 'London', 'New York']
 
